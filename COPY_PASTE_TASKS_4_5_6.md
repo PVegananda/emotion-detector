@@ -225,69 +225,92 @@ SUMMARY: All 7 unit tests PASSED (100% success rate)
 
 ---
 
-## TASK 6 - Activity 1: Code from server.py
+## TASK 6 - Activity 1: Code from server.py (6a_server)
 **Points: 1**
 
 ```python
 """
 Flask web server for Emotion Detector application
+Web deployment using Flask framework
 """
 from flask import Flask, render_template, request, jsonify
-from emotion_detection import emotion_detector
+from EmotionDetection.emotion_detection import emotion_detector
 
 app = Flask(__name__)
 
 
 @app.route("/")
-def index():
-    """Render the main page"""
+def render_index_page():
+    """Render the main page of the application"""
     return render_template("index.html")
 
 
-@app.route("/emotions", methods=["POST"])
-def analyze_emotion():
+@app.route("/emotionDetector", methods=["GET"])
+def emotion_detection():
     """
-    API endpoint to analyze emotions from text
-
-    Expected JSON payload:
-    {
-        "textToAnalyze": "text content here"
-    }
+    Flask route for emotion detection using GET method
+    
+    This route accepts text input as a query parameter and returns
+    emotion analysis with all five emotion scores and dominant emotion.
+    
+    Query Parameters:
+        textToAnalyze (str): The text to analyze for emotions
+        
+    Returns:
+        JSON response with emotion scores and dominant emotion:
+        {
+            "anger": float,
+            "disgust": float,
+            "fear": float,
+            "joy": float,
+            "sadness": float,
+            "dominant_emotion": string
+        }
     """
-    data = request.get_json()
-    text_to_analyze = data.get("textToAnalyze", "").strip() if data else ""
-
-    # Handle blank input
+    # Get the text to analyze from query parameters
+    text_to_analyze = request.args.get("textToAnalyze")
+    
+    # Check if text parameter is provided
     if not text_to_analyze:
         return jsonify({
-            "error": "Please provide non-empty text",
-            "status_code": 400
+            "error": "textToAnalyze parameter is required"
         }), 400
-
-    # Analyze emotions
+    
+    # Call the emotion_detector function with the text input
     result = emotion_detector(text_to_analyze)
-
-    # Check for errors
+    
+    # Check for error status codes
     if result.get("status_code") == 400:
         return jsonify({
-            "error": "Invalid input",
-            "status_code": 400
+            "error": "Invalid input provided",
+            "anger": result.get("anger"),
+            "disgust": result.get("disgust"),
+            "fear": result.get("fear"),
+            "joy": result.get("joy"),
+            "sadness": result.get("sadness"),
+            "dominant_emotion": result.get("dominant_emotion")
         }), 400
-
+    
     if result.get("status_code") and result.get("status_code") != 200:
         return jsonify({
-            "error": "Error analyzing emotions",
-            "status_code": result.get("status_code")
+            "error": "Error processing emotions",
+            "anger": result.get("anger"),
+            "disgust": result.get("disgust"),
+            "fear": result.get("fear"),
+            "joy": result.get("joy"),
+            "sadness": result.get("sadness"),
+            "dominant_emotion": result.get("dominant_emotion")
         }), result.get("status_code", 500)
-
-    # Return the emotion analysis
-    return jsonify(result), 200
-
-
-@app.route("/health", methods=["GET"])
-def health_check():
-    """Health check endpoint"""
-    return jsonify({"status": "healthy"}), 200
+    
+    # Format and return the response with all five emotion scores
+    return jsonify({
+        "anger": result.get("anger"),
+        "disgust": result.get("disgust"),
+        "fear": result.get("fear"),
+        "joy": result.get("joy"),
+        "sadness": result.get("sadness"),
+        "dominant_emotion": result.get("dominant_emotion")
+    }), 200
 
 
 if __name__ == "__main__":
@@ -295,9 +318,13 @@ if __name__ == "__main__":
 ```
 
 **Key Features:**
-- Flask web framework for HTTP server
-- Three routes: main page (/), emotion API (/emotions), health check (/health)
-- REST API with POST method for emotion detection
+- Flask web framework for HTTP server deployment
+- Route `/emotionDetector` with GET method for emotion detection
+- Accepts query parameter: `textToAnalyze`
+- Correct import: `from EmotionDetection.emotion_detection import emotion_detector`
+- Response formatting with all five emotion scores: anger, disgust, fear, joy, sadness
+- Returns dominant_emotion field
+- Proper error handling with status codes
 - Proper error handling with HTTP status codes
 - JSON request/response format
 - HTML template rendering for user interface
