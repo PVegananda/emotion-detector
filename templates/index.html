@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 120px;
+            transition: border-color 0.3s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-analyze {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-analyze:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-clear {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-clear:hover {
+            background: #e0e0e0;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+        
+        .spinner {
+            border: 4px solid #f0f0f0;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .results.show {
+            display: block;
+        }
+        
+        .results h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 18px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .emotion-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .emotion-name {
+            font-weight: 600;
+            color: #333;
+            text-transform: capitalize;
+        }
+        
+        .emotion-bar {
+            flex: 1;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin: 0 15px;
+            overflow: hidden;
+        }
+        
+        .emotion-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .emotion-score {
+            font-weight: 600;
+            color: #667eea;
+            min-width: 50px;
+            text-align: right;
+        }
+        
+        .dominant-emotion {
+            margin-top: 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .dominant-emotion p {
+            font-size: 14px;
+            margin-bottom: 8px;
+            opacity: 0.9;
+        }
+        
+        .dominant-emotion h3 {
+            font-size: 28px;
+            font-weight: 700;
+            text-transform: capitalize;
+        }
+        
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #c33;
+            display: none;
+        }
+        
+        .error.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 Emotion Detector</h1>
+        <p class="subtitle">Analyze emotions in your text</p>
+        
+        <div class="error" id="error"></div>
+        
+        <div class="form-group">
+            <label for="textInput">Enter text to analyze:</label>
+            <textarea id="textInput" placeholder="Type something..."></textarea>
+        </div>
+        
+        <div class="button-group">
+            <button class="btn-analyze" onclick="analyzeEmotion()">Analyze</button>
+            <button class="btn-clear" onclick="clearForm()">Clear</button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing emotions...</p>
+        </div>
+        
+        <div class="results" id="results">
+            <h2>Results</h2>
+            <div id="emotionBars"></div>
+            <div class="dominant-emotion">
+                <p>Dominant Emotion</p>
+                <h3 id="dominantEmotionText"></h3>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function analyzeEmotion() {
+            const textInput = document.getElementById("textInput").value;
+            const errorDiv = document.getElementById("error");
+            const loading = document.getElementById("loading");
+            const results = document.getElementById("results");
+            
+            // Clear previous error and results
+            errorDiv.classList.remove("show");
+            results.classList.remove("show");
+            
+            // Validate input
+            if (!textInput.trim()) {
+                errorDiv.textContent = "Please enter some text to analyze.";
+                errorDiv.classList.add("show");
+                return;
+            }
+            
+            // Show loading state
+            loading.style.display = "block";
+            
+            try {
+                const response = await fetch("/emotions", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ textToAnalyze: textInput })
+                });
+                
+                loading.style.display = "none";
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "Failed to analyze emotions");
+                }
+                
+                const data = await response.json();
+                displayResults(data);
+                
+            } catch (error) {
+                loading.style.display = "none";
+                errorDiv.textContent = "Error: " + error.message;
+                errorDiv.classList.add("show");
+            }
+        }
+        
+        function displayResults(data) {
+            const emotionBars = document.getElementById("emotionBars");
+            const dominantEmotionText = document.getElementById("dominantEmotionText");
+            const results = document.getElementById("results");
+            
+            // Clear previous results
+            emotionBars.innerHTML = "";
+            
+            // Emotions to display
+            const emotions = ["anger", "disgust", "fear", "joy", "sadness"];
+            
+            // Find max score for scaling
+            let maxScore = Math.max(...emotions.map(e => data[e] || 0));
+            if (maxScore === 0) maxScore = 1;
+            
+            // Display each emotion
+            emotions.forEach(emotion => {
+                const score = data[emotion] || 0;
+                const percentage = (score / maxScore) * 100;
+                
+                const emotionBox = document.createElement("div");
+                emotionBox.className = "emotion-box";
+                emotionBox.innerHTML = `
+                    <span class="emotion-name">${emotion}</span>
+                    <div class="emotion-bar">
+                        <div class="emotion-fill" style="width: ${percentage}%"></div>
+                    </div>
+                    <span class="emotion-score">${(score * 100).toFixed(1)}%</span>
+                `;
+                emotionBars.appendChild(emotionBox);
+            });
+            
+            // Display dominant emotion
+            dominantEmotionText.textContent = data.dominant_emotion || "Unknown";
+            
+            // Show results
+            results.classList.add("show");
+        }
+        
+        function clearForm() {
+            document.getElementById("textInput").value = "";
+            document.getElementById("results").classList.remove("show");
+            document.getElementById("error").classList.remove("show");
+            document.getElementById("textInput").focus();
+        }
+        
+        // Allow Enter to submit
+        document.getElementById("textInput").addEventListener("keydown", function(event) {
+            if (event.key === "Enter" && event.ctrlKey) {
+                analyzeEmotion();
+            }
+        });
+    </script>
+</body>
+</html>
